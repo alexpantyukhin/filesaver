@@ -1,15 +1,15 @@
 package main
 
 import (
-	"io/ioutil"
 	"io"
+	"io/ioutil"
 	"log"
-	"path"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 // Config for storage
@@ -60,35 +60,33 @@ func (storage *Storage) putFileIntoSubFolder(content []byte, name string, folder
 }
 
 // DownloadFileIntoSubFolder downloads file into specific subfolder from the url
-func (storage *Storage) DownloadFileIntoSubFolder(url string, name string, subfolder string) (err error) {
+func (storage *Storage) DownloadFileIntoSubFolder(url string, name string, subfolder string) (fullPath string, err error) {
 	folder := path.Join(storage.config.Folder, subfolder)
 	return downloadFileIntoSubFolder(url, name, folder)
 }
 
 // DownloadFileIntoFolder downloads file from the url
-func (storage *Storage) DownloadFileIntoFolder(url string, name string) (err error) {
+func (storage *Storage) DownloadFileIntoFolder(url string, name string) (fullPath string, err error) {
 	folder := storage.config.Folder
 	return downloadFileIntoSubFolder(url, name, folder)
 }
 
-
-func downloadFileIntoSubFolder(url string, name string, folder string) (err error) {
+func downloadFileIntoSubFolder(url string, name string, folder string) (fullPath string, err error) {
 	// Download File
-    resp, err := http.Get(url)
-    if err != nil {
-        return err
-    }
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
 	defer resp.Body.Close()
-	
 
 	// Find the allowed name
-	fullPath := path.Join(folder, name)
+	fullPath = path.Join(folder, name)
 	_, err = os.Stat(fullPath)
 
 	index := 0
 
 	for {
-		if (!os.IsNotExist(err)){
+		if os.IsNotExist(err) {
 			break
 		}
 
@@ -102,14 +100,13 @@ func downloadFileIntoSubFolder(url string, name string, folder string) (err erro
 	}
 
 	// Create file
-    out, err := os.Create(fullPath)
-    if err != nil {
-        return err
-    }
-    defer out.Close()
+	out, err := os.Create(fullPath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
 
 	// Write file
-    _, err = io.Copy(out, resp.Body)
-    return err
+	_, err = io.Copy(out, resp.Body)
+	return fullPath, err
 }
-
