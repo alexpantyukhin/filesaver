@@ -6,28 +6,39 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func substituteMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI) {
+func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Storage) {
 	//userName := update.Message.From.UserName
 	//text := update.Message.Text
-	chatID := update.Message.Chat.ID
-	messageID := update.Message.MessageID
-	_, err := botAPI.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: chatID, MessageID: messageID})
+	//chatID := update.Message.Chat.ID
+	//messageID := update.Message.MessageID
 
-	if err != nil {
-		// Log
-	}
+	// _, err := botAPI.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: chatID, MessageID: messageID})
 
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+	if (update.Message.Document != nil) {
+		if len(storage.GetInnerFolders()) == 0 {
+			linkURL, err := botAPI.GetFileDirectURL(update.Message.Document.FileID)
+			if (err != nil){
+				// Log
+			}
 
-	_, err = botAPI.Send(msg)
+			err = storage.DownloadFileIntoFolder(linkURL, update.Message.Document.FileName)
+			if (err != nil){
+				// Log
+			}
 
-	if err != nil {
-		// Log
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+			_, err = botAPI.Send(msg)			
+
+			if err != nil {
+				// Log
+			}
+		}
 	}
 }
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI("###")
+	storage := Storage {Config {""}}
 	if err != nil {
 		log.Panic(err)
 	}
@@ -46,6 +57,6 @@ func main() {
 			continue
 		}
 
-		substituteMessage(update, bot)
+		handleMessage(update, bot, storage)
 	}
 }
