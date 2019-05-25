@@ -11,11 +11,13 @@ import (
 )
 
 var data = `
-folder: c:\\tmp\\folder
+folder: ###
+token: ###
 `
 
 type BotConfig struct {
 	Folder string
+	Token  string
 }
 
 func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Storage) {
@@ -27,33 +29,37 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 	// _, err := botAPI.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: chatID, MessageID: messageID})
 	fileID := ""
 	fileName := ""
+
+	var linkURL string
+	var err error
+
 	document := update.Message.Document
 	photos := update.Message.Photo
-	detectImageType := false
 	if document != nil {
 		fileID = document.FileID
 		fileName = document.FileName
+		linkURL, err = botAPI.GetFileDirectURL(fileID)
+		if err != nil {
+			// Log
+		}
 	} else if (photos != nil) && len(*photos) > 0 {
 		photo := (*photos)[len(*photos)-1]
 		fileID = photo.FileID
 		fileName = strconv.FormatInt(time.Now().Unix(), 10)
-		detectImageType = true
+
+		linkURL, err := botAPI.GetFileDirectURL(fileID)
+		if err != nil {
+			// Log
+		}
+
+		ext := filepath.Ext(linkURL)
+		fileName = fileName + ext
 	}
 
 	if fileID != "" {
-		if len(storage.GetInnerFolders()) == 0 {
-			linkURL, err := botAPI.GetFileDirectURL(fileID)
-			if err != nil {
-				// Log
-			}
-
-			//fmt.Println(linkURL)
-			if detectImageType {
-				ext := filepath.Ext(linkURL)
-				fileName = fileName + ext
-			}
-
-			_, err = storage.DownloadFileIntoFolder(linkURL, fileName)
+		folders := storage.GetInnerFolders()
+		if len(folders) == 0 {
+			_, err := storage.DownloadFileIntoFolder(linkURL, fileName)
 			if err != nil {
 				// Log
 			}
@@ -64,6 +70,25 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 			if err != nil {
 				// Log
 			}
+		} else {
+			// var keyboardButtons [][]tgbotapi.KeyboardButton
+
+			// for _, folder := range folders {
+			// 	keyboardButtons = append(keyboardButtons, tgbotapi.NewKeyboardButtonRow(tgbotapi.KeyboardButton{Text: folder, RequestContact: false, RequestLocation: false}))
+			// }
+
+			// markup := tgbotapi.NewReplyKeyboard(keyboardButtons...)
+			var keyboardButtons [][]tgbotapi.InlineKeyboardButton
+
+			for _, folder := range folders {
+				//button := tgbotapi.InlineKeyboardButton{Text: folder, RequestContact: false, RequestLocation: false}
+				button := tgbotapi.NewInlineKeyboardButtonData(folder, "")
+				keyboardButtons = append(keyboardButtons, tgbotapi.NewInlineKeyboardRow(button))
+			}
+
+			markup := tgbotapi.NewInlineKeyboardMarkup(keyboardButtons...)
+			msg := tgbotapi.NewEditMessageReplyMarkup(update.Message.Chat.ID, update.Message.MessageID, markup)
+			_, err = botAPI.Send(markup)
 		}
 	}
 }
@@ -76,7 +101,7 @@ func main() {
 		log.Fatalf("error: %v", err)
 	}
 
-	bot, err := tgbotapi.NewBotAPI("###")
+	bot, err := tgbotapi.NewBotAPI(botConfig.Token)
 	storage := Storage{Config{botConfig.Folder}}
 	if err != nil {
 		log.Panic(err)
