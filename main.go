@@ -71,26 +71,42 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 				// Log
 			}
 		} else {
-			// var keyboardButtons [][]tgbotapi.KeyboardButton
+			makrup := getKeyboardFromNames(folders)
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+			msg.ReplyMarkup = makrup
+			//msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 
-			// for _, folder := range folders {
-			// 	keyboardButtons = append(keyboardButtons, tgbotapi.NewKeyboardButtonRow(tgbotapi.KeyboardButton{Text: folder, RequestContact: false, RequestLocation: false}))
+			// switch update.Message.Text {
+			// case "open":
+			// 	msg.ReplyMarkup = makrup
+			// case "close":
+			// 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 			// }
-
-			// markup := tgbotapi.NewReplyKeyboard(keyboardButtons...)
-			var keyboardButtons [][]tgbotapi.InlineKeyboardButton
-
-			for _, folder := range folders {
-				//button := tgbotapi.InlineKeyboardButton{Text: folder, RequestContact: false, RequestLocation: false}
-				button := tgbotapi.NewInlineKeyboardButtonData(folder, "")
-				keyboardButtons = append(keyboardButtons, tgbotapi.NewInlineKeyboardRow(button))
-			}
-
-			markup := tgbotapi.NewInlineKeyboardMarkup(keyboardButtons...)
-			msg := tgbotapi.NewEditMessageReplyMarkup(update.Message.Chat.ID, update.Message.MessageID, markup)
-			_, err = botAPI.Send(markup)
+	
+			botAPI.Send(msg)
 		}
 	}
+}
+
+func getKeyboardFromNames(names []string) tgbotapi.ReplyKeyboardMarkup {
+	bottonsPerRows := 3
+	var buttonsRows [][]tgbotapi.KeyboardButton
+
+	bottonsPerRow := 0
+	var buttonsRowsBuffer []tgbotapi.KeyboardButton
+
+	for _, name := range names {
+		buttonsRowsBuffer = append(buttonsRowsBuffer, tgbotapi.NewKeyboardButton(name))
+		bottonsPerRow++ 
+
+		if bottonsPerRow >= bottonsPerRows {
+			buttonsRows = append(buttonsRows, buttonsRowsBuffer)
+			buttonsRowsBuffer = make([]tgbotapi.KeyboardButton, 0)
+			bottonsPerRow = 0
+		}
+	}
+
+	return tgbotapi.NewReplyKeyboard(buttonsRows...)
 }
 
 func main() {
