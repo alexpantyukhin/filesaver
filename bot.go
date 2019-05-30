@@ -9,6 +9,12 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+type TelegramFile struct {
+	fileID string
+	fileName string
+	linkURL string
+}
+
 func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Storage) {
 
 	if update.CallbackQuery != nil {
@@ -18,12 +24,12 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 
 		documentMessage := update.CallbackQuery.Message.ReplyToMessage
 		targetFolder := update.CallbackQuery.Data
-		_, fileName, linkURL, err := getFileByMessage(documentMessage, botAPI)
+		telegratFile, err := getFileByMessage(documentMessage, botAPI)
 		if err != nil {
 			// Log
 		}
 
-		_, err = storage.DownloadFileIntoSubFolder(linkURL, fileName, targetFolder)
+		_, err = storage.DownloadFileIntoSubFolder(telegratFile.linkURL, telegratFile.fileName, targetFolder)
 		if err != nil {
 			// Log
 		}
@@ -34,15 +40,15 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 		return
 	}
 
-	fileID, fileName, linkURL, err := getFileByMessage(update.Message, botAPI)
+	telegratFile, err := getFileByMessage(update.Message, botAPI)
 	if err != nil {
 		// Log
 	}
 
-	if fileID != "" {
+	if telegratFile.fileID != "" {
 		folders := storage.GetInnerFolders()
 		if len(folders) == 0 {
-			_, err := storage.DownloadFileIntoFolder(linkURL, fileName)
+			_, err := storage.DownloadFileIntoFolder(telegratFile.linkURL, telegratFile.fileName)
 			if err != nil {
 				// Log
 			}
@@ -64,15 +70,21 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 	}
 }
 
-func getFileByMessage(message *tgbotapi.Message, botAPI *tgbotapi.BotAPI) (fileID string, fileName string, linkURL string, err error) {
+func getFileByMessage(message *tgbotapi.Message, botAPI *tgbotapi.BotAPI) (telegramFile *TelegramFile, err error) {
 	document := message.Document
 	photos := message.Photo
+	var fileID string
+	var fileName string
+	var linkURL string
+
 	if document != nil {
 		fileID = document.FileID
 		fileName = document.FileName
 		linkURL, err = botAPI.GetFileDirectURL(fileID)
 		if err != nil {
 			// Log
+
+			return nil, err
 		}
 	} else if (photos != nil) && len(*photos) > 0 {
 		photo := (*photos)[len(*photos)-1]
@@ -82,13 +94,15 @@ func getFileByMessage(message *tgbotapi.Message, botAPI *tgbotapi.BotAPI) (fileI
 		linkURL, err := botAPI.GetFileDirectURL(fileID)
 		if err != nil {
 			// Log
+
+			return nil, err
 		}
 
 		ext := filepath.Ext(linkURL)
 		fileName = fileName + ext
 	}
 
-	return fileID, fileName, linkURL, err
+	return &TelegramFile{fileID: fileID, fileName: fileName, linkURL: linkURL} , err
 }
 
 func getKeyboardFromNames(names []string) tgbotapi.InlineKeyboardMarkup {
