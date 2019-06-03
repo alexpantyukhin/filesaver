@@ -24,12 +24,12 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 
 		documentMessage := update.CallbackQuery.Message.ReplyToMessage
 		targetFolder := update.CallbackQuery.Data
-		telegratFile, err := getFileByMessage(documentMessage, botAPI)
+		telegramFile, err := getFileByMessage(documentMessage, botAPI)
 		if err != nil {
 			// Log
 		}
 
-		_, err = storage.DownloadFileIntoSubFolder(telegratFile.linkURL, telegratFile.fileName, targetFolder)
+		_, err = storage.DownloadFileIntoSubFolder(telegramFile.linkURL, telegramFile.fileName, targetFolder)
 		if err != nil {
 			// Log
 		}
@@ -40,15 +40,15 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 		return
 	}
 
-	telegratFile, err := getFileByMessage(update.Message, botAPI)
+	telegramFile, err := getFileByMessage(update.Message, botAPI)
 	if err != nil {
 		// Log
 	}
 
-	if telegratFile.fileID != "" {
+	if telegramFile.fileID != "" {
 		folders := storage.GetInnerFolders()
 		if len(folders) == 0 {
-			_, err := storage.DownloadFileIntoFolder(telegratFile.linkURL, telegratFile.fileName)
+			_, err := storage.DownloadFileIntoFolder(telegramFile.linkURL, telegramFile.fileName)
 			if err != nil {
 				// Log
 			}
@@ -65,7 +65,11 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 			msg.ReplyMarkup = makrup
 			msg.ReplyToMessageID = update.Message.MessageID
 
-			botAPI.Send(msg)
+			_, err = botAPI.Send(msg)
+
+			if err != nil {
+				// Log
+			}
 		}
 	}
 }
