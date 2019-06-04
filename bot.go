@@ -20,7 +20,6 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 	if update.CallbackQuery != nil {
 		message := update.CallbackQuery.Message
 		chat := message.Chat
-		botAPI.DeleteMessage(tgbotapi.DeleteMessageConfig{ChatID: chat.ID, MessageID: message.MessageID})
 
 		documentMessage := update.CallbackQuery.Message.ReplyToMessage
 		targetFolder := update.CallbackQuery.Data
@@ -34,8 +33,10 @@ func handleMessage(update tgbotapi.Update, botAPI *tgbotapi.BotAPI, storage Stor
 			// Log
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "saved into "+targetFolder+"!")
-		_, err = botAPI.Send(msg)
+		text := "Saved into "+targetFolder+"!"
+		msgedit := tgbotapi.NewEditMessageText(chat.ID, message.MessageID, text)
+
+		_, err = botAPI.Send(msgedit)
 
 		return
 	}
