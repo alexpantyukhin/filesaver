@@ -9,11 +9,16 @@ import (
 var data = `
 folder: ###
 token: ###
+log: true
+telegramlog: false
 `
 
+// BotConfig contains configuration for running filesaver.
 type BotConfig struct {
 	Folder string
 	Token  string
+	Log	bool
+	Telegramlog bool
 }
 
 func main() {
@@ -21,16 +26,19 @@ func main() {
 
 	err := yaml.Unmarshal([]byte(data), &botConfig)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatalf("ERROR: Can't read the config file. Details: %v", err)
+		return
 	}
 
 	bot, err := tgbotapi.NewBotAPI(botConfig.Token)
-	storage := Storage{Config{botConfig.Folder}}
 	if err != nil {
-		log.Panic(err)
+		log.Panicf("ERROR: Can't connect to telegram bot. Details: %v", err)
+		return
 	}
 
-	bot.Debug = true
+	storage := Storage{Config{botConfig.Folder}}
+
+	bot.Debug = botConfig.Telegramlog
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
